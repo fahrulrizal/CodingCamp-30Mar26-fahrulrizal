@@ -1,0 +1,371 @@
+/* Base reset & layout */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* CSS variables — light mode */
+:root {
+  --bg: #f5f5f5;
+  --surface: #fff;
+  --text: #333;
+  --text-muted: #9ca3af;
+  --border: #e5e7eb;
+  --input-border: #d1d5db;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --shadow: rgba(0,0,0,0.1);
+  --error: #dc2626;
+  --modal-overlay: rgba(0,0,0,0.4);
+}
+
+/* Dark mode overrides */
+body.dark {
+  --bg: #111827;
+  --surface: #1f2937;
+  --text: #f9fafb;
+  --text-muted: #6b7280;
+  --border: #374151;
+  --input-border: #4b5563;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --shadow: rgba(0,0,0,0.4);
+  --error: #f87171;
+  --modal-overlay: rgba(0,0,0,0.6);
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  padding: 1rem;
+  transition: background 0.2s, color 0.2s;
+}
+
+.container {
+  max-width: 640px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* App header with title + theme toggle */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+h1 {
+  font-size: 1.5rem;
+}
+
+h2 {
+  font-size: 1.1rem;
+  margin-bottom: 0.75rem;
+}
+
+/* Theme toggle button */
+.theme-toggle {
+  background: none;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  padding: 0.3rem 0.6rem;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: var(--text);
+  transition: border-color 0.15s;
+}
+
+.theme-toggle:hover {
+  border-color: var(--accent);
+}
+
+/* Balance display */
+.balance-section {
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 1px 3px var(--shadow);
+}
+
+.balance-label {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.balance-amount {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* Form layout */
+form {
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px var(--shadow);
+}
+
+/* Form header: "Add Transaction" + "New Category" button side by side */
+.form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.form-header h2 {
+  margin-bottom: 0;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.form-group label {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.form-group input,
+.form-group select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  outline: none;
+  background: var(--surface);
+  color: var(--text);
+  transition: border-color 0.15s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  border-color: var(--accent);
+}
+
+button[type="submit"] {
+  width: 100%;
+  padding: 0.6rem;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+button[type="submit"]:hover {
+  background: var(--accent-hover);
+}
+
+/* Secondary button (New Category, Cancel) */
+.btn-secondary {
+  padding: 0.35rem 0.75rem;
+  background: none;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.btn-secondary:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Error text */
+.error {
+  color: var(--error);
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+  min-height: 1.2em;
+}
+
+/* Transaction list section */
+.list-section,
+.chart-section {
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px var(--shadow);
+}
+
+/* List header: "Transactions" + sort controls */
+.list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.list-header h2 {
+  margin-bottom: 0;
+}
+
+.sort-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+}
+
+.sort-controls label {
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.sort-controls select {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.transaction-list {
+  max-height: 260px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Transaction row */
+.transaction-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  gap: 0.5rem;
+}
+
+.transaction-name {
+  flex: 1;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transaction-amount {
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+/* Category badge */
+.category-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.category-badge.Food      { background: #dcfce7; color: #166534; }
+.category-badge.Transport { background: #dbeafe; color: #1e40af; }
+.category-badge.Fun       { background: #fef9c3; color: #854d0e; }
+
+/* Delete button */
+.delete-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+
+.delete-btn:hover {
+  color: var(--error);
+}
+
+/* Empty state */
+.empty-state {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 0.75rem 0;
+}
+
+/* Chart canvas */
+#spending-chart {
+  max-width: 320px;
+  margin: 0 auto;
+  display: block;
+}
+
+/* Modal overlay */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--modal-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal-overlay[hidden] {
+  display: none;
+}
+
+.modal {
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 1.5rem;
+  width: min(360px, 90vw);
+  box-shadow: 0 8px 24px var(--shadow);
+}
+
+.modal h2 {
+  margin-bottom: 1rem;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.modal-actions button[type="button"]:not(.btn-secondary) {
+  padding: 0.45rem 1rem;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.modal-actions button[type="button"]:not(.btn-secondary):hover {
+  background: var(--accent-hover);
+}
