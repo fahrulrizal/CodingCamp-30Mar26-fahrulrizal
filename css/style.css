@@ -44,7 +44,7 @@ body {
 }
 
 .container {
-  max-width: 640px;
+  max-width: 1100px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -88,6 +88,7 @@ h2 {
   background: var(--surface);
   border-radius: 8px;
   padding: 1rem 1.25rem;
+  justify-content: center;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -206,6 +207,32 @@ button[type="submit"]:hover {
   box-shadow: 0 1px 3px var(--shadow);
 }
 
+/* 2-column grid: form (left) + chart (right) */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+/* Chart fills the full height of the grid row */
+.main-grid .chart-section {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-grid .chart-section canvas {
+  flex: 1;
+}
+
+/* On narrow screens, stack vertically */
+@media (max-width: 700px) {
+  .main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* List header: "Transactions" + sort controls */
 .list-header {
   display: flex;
@@ -314,7 +341,7 @@ button[type="submit"]:hover {
 
 /* Chart canvas */
 #spending-chart {
-  max-width: 320px;
+  max-width: 100%;
   margin: 0 auto;
   display: block;
 }
@@ -529,3 +556,4 @@ button[type="submit"]:hover {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+
