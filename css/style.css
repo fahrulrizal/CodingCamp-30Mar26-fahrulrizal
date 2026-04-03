@@ -69,7 +69,7 @@ h2 {
 
 /* Theme toggle button */
 .theme-toggle {
-  background: none;
+  background: #444;
   border: 1px solid var(--input-border);
   border-radius: 6px;
   padding: 0.3rem 0.6rem;
@@ -368,4 +368,164 @@ button[type="submit"]:hover {
 
 .modal-actions button[type="button"]:not(.btn-secondary):hover {
   background: var(--accent-hover);
+}
+
+/* Monthly Summary */
+.monthly-section {
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px var(--shadow);
+}
+
+/* Section header: title + filter controls side by side */
+.monthly-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.monthly-header h2 {
+  margin-bottom: 0;
+}
+
+.summary-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.summary-filter input[type="date"] {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.summary-filter input[type="date"]:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.summary-filter-sep {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* Month group header */
+.month-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0 0.35rem;
+  border-bottom: 2px solid var(--border);
+  margin-top: 1rem;
+}
+
+.month-header:first-child {
+  margin-top: 0;
+}
+
+.month-label {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.month-total {
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 1rem;
+}
+
+/* Category chips row under month header */
+.month-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0.4rem 0 0.5rem;
+}
+
+.month-cat-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+}
+
+.month-cat-amount {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Transaction list inside a month group */
+.month-txn-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.month-txn-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.month-txn-name {
+  flex: 1;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Date display in transaction rows */
+.transaction-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+  white-space: nowrap;
+}
+
+.transaction-date {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* Toast notification */
+.toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(1rem);
+  background: #16a34a;
+  color: #fff;
+  padding: 0.6rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s, transform 0.25s;
+  z-index: 200;
+  white-space: nowrap;
+}
+
+.toast.toast-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }

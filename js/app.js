@@ -20,6 +20,12 @@ let chartInstance = null;
 /** @type {string} current sort key */
 let currentSort = 'date-desc';
 
+/** @type {string} monthly summary filter start date (YYYY-MM-DD or '') */
+let summaryFilterStart = '';
+
+/** @type {string} monthly summary filter end date (YYYY-MM-DD or '') */
+let summaryFilterEnd = '';
+
 // ---------------------------------------------------------------------------
 // Storage
 // ---------------------------------------------------------------------------
@@ -51,14 +57,24 @@ function saveCategories(cats) {
 }
 
 /**
- * Load transactions from localStorage.
+ * Load transactions from localStorage, migrating any that lack a date field.
  * @returns {object[]}
  */
 function loadTransactions() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    const today = new Date().toISOString().slice(0, 10);
+    let migrated = false;
+    const result = parsed.map(t => {
+      if (!t.date) { migrated = true; return { ...t, date: today }; }
+      return t;
+    });
+    if (migrated) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(result)); } catch (_) {}
+    }
+    return result;
   } catch (err) {
     console.warn('Failed to load transactions from localStorage:', err);
     return [];
@@ -107,8 +123,9 @@ function validateTransaction(name, amount, category) {
  * @param {string} name
  * @param {number} amount
  * @param {string} category
+ * @param {string} [date] - YYYY-MM-DD; defaults to today
  */
-function addTransaction(name, amount, category) {
+function addTransaction(name, amount, category, date) {
   const id = (typeof crypto !== 'undefined' && crypto.randomUUID)
     ? crypto.randomUUID()
     : Date.now().toString();
@@ -118,6 +135,7 @@ function addTransaction(name, amount, category) {
     name: name.trim(),
     amount: Number(amount),
     category,
+    date: date || new Date().toISOString().slice(0, 10),
   };
 
   transactions.push(transaction);
@@ -173,15 +191,34 @@ function getSortedTransactions(txns) {
     case 'amount-desc': return copy.sort((a, b) => b.amount - a.amount);
     case 'amount-asc':  return copy.sort((a, b) => a.amount - b.amount);
     case 'category':    return copy.sort((a, b) => a.category.localeCompare(b.category));
-    case 'date-asc':    return copy.sort((a, b) => a.id.localeCompare(b.id));
+    case 'date-asc':    return copy.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    case 'month-desc':  return copy.sort((a, b) => (b.date || '').slice(0, 7).localeCompare((a.date || '').slice(0, 7)));
+    case 'month-asc':   return copy.sort((a, b) => (a.date || '').slice(0, 7).localeCompare((b.date || '').slice(0, 7)));
     case 'date-desc':
-    default:            return copy.sort((a, b) => b.id.localeCompare(a.id));
+    default:            return copy.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   }
 }
 
 // ---------------------------------------------------------------------------
 // Rendering
 // ---------------------------------------------------------------------------
+
+/** Fixed palette for built-in categories; custom ones get a deterministic hsl color. */
+const CATEGORY_PALETTE = { Food: '#86efac', Transport: '#93c5fd', Fun: '#fde68a' };
+
+/**
+ * Return a background color for a category.
+ * For custom categories the index is derived from its position in CATEGORIES
+ * so the color stays stable across re-renders.
+ * @param {string} category
+ * @returns {string}
+ */
+function getCategoryColor(category) {
+  if (CATEGORY_PALETTE[category]) return CATEGORY_PALETTE[category];
+  const idx = CATEGORIES.indexOf(category);
+  const seed = idx >= 0 ? idx : category.length;
+  return `hsl(${(seed * 67 + 200) % 360}, 70%, 75%)`;
+}
 
 /**
  * Update the balance display.
@@ -220,13 +257,31 @@ function renderTransactionList(txns) {
     name.className = 'transaction-name';
     name.textContent = t.name;
 
+    const meta = document.createElement('span');
+    meta.className = 'transaction-meta';
+
+    const dateSpan = document.createElement('span');
+    dateSpan.className = 'transaction-date';
+    dateSpan.textContent = t.date
+      ? new Date(t.date + 'T00:00:00').toLocaleDateString('default', { day: 'numeric', month: 'short', year: 'numeric' })
+      : '';
+
     const amount = document.createElement('span');
     amount.className = 'transaction-amount';
     amount.textContent = '$' + t.amount.toFixed(2);
 
+    meta.appendChild(dateSpan);
+    meta.appendChild(amount);
+
     const badge = document.createElement('span');
     badge.className = 'category-badge ' + t.category;
     badge.textContent = t.category;
+    // For custom categories (no CSS class), apply color inline
+    if (!CATEGORY_PALETTE[t.category]) {
+      const bg = getCategoryColor(t.category);
+      badge.style.background = bg;
+      badge.style.color = '#1f2937';
+    }
 
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'delete-btn';
@@ -235,7 +290,7 @@ function renderTransactionList(txns) {
     deleteBtn.addEventListener('click', () => deleteTransaction(t.id));
 
     row.appendChild(name);
-    row.appendChild(amount);
+    row.appendChild(meta);
     row.appendChild(badge);
     row.appendChild(deleteBtn);
     container.appendChild(row);
@@ -265,9 +320,7 @@ function renderChart(txns) {
   const labels = Object.keys(totals).filter(c => totals[c] > 0);
   const data = labels.map(c => totals[c]);
 
-  // Generate colors — fixed palette for known categories, hashed for custom
-  const palette = { Food: '#86efac', Transport: '#93c5fd', Fun: '#fde68a' };
-  const colors = labels.map((c, i) => palette[c] || `hsl(${(i * 67 + 200) % 360}, 70%, 75%)`);
+  const colors = labels.map((c, i) => getCategoryColor(c, i));
 
   emptyMsg.style.display = 'none';
   canvas.style.display = 'block';
@@ -299,12 +352,149 @@ function renderChart(txns) {
 }
 
 /**
+ * Group transactions by month (YYYY-MM) and compute totals per category.
+ * Returns an array sorted newest-first.
+ * @param {object[]} txns
+ * @returns {{ month: string, label: string, total: number, byCategory: Object.<string,number> }[]}
+ */
+function computeMonthlySummary(txns) {
+  const map = {};
+  for (const t of txns) {
+    const month = (t.date || '').slice(0, 7); // YYYY-MM
+    if (!month) continue;
+    if (!map[month]) map[month] = { total: 0, byCategory: {} };
+    map[month].total += t.amount;
+    map[month].byCategory[t.category] = (map[month].byCategory[t.category] || 0) + t.amount;
+  }
+  return Object.keys(map)
+    .sort((a, b) => b.localeCompare(a))
+    .map(month => {
+      const [year, m] = month.split('-');
+      const label = new Date(Number(year), Number(m) - 1, 1)
+        .toLocaleString('default', { month: 'long', year: 'numeric' });
+      return { month, label, total: map[month].total, byCategory: map[month].byCategory };
+    });
+}
+
+/**
+ * Render the monthly summary section as a grouped transaction list.
+ * Applies summaryFilterStart / summaryFilterEnd if set.
+ * @param {object[]} txns
+ */
+function renderMonthlySummary(txns) {
+  const container = document.getElementById('monthly-summary');
+  if (!container) return;
+  container.innerHTML = '';
+
+  // Apply date range filter
+  const filtered = txns.filter(t => {
+    const d = t.date || '';
+    if (summaryFilterStart && d < summaryFilterStart) return false;
+    if (summaryFilterEnd && d > summaryFilterEnd) return false;
+    return true;
+  });
+
+  const summary = computeMonthlySummary(filtered);
+
+  if (summary.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'empty-state';
+    empty.textContent = (summaryFilterStart || summaryFilterEnd) ? 'No data for the selected period.' : 'No data yet.';
+    container.appendChild(empty);
+    return;
+  }
+
+  for (const row of summary) {
+    // Month header row
+    const monthHeader = document.createElement('div');
+    monthHeader.className = 'month-header';
+
+    const monthLabel = document.createElement('span');
+    monthLabel.className = 'month-label';
+    monthLabel.textContent = row.label;
+
+    const monthTotal = document.createElement('span');
+    monthTotal.className = 'month-total';
+    monthTotal.textContent = '$' + row.total.toFixed(2);
+
+    monthHeader.appendChild(monthLabel);
+    monthHeader.appendChild(monthTotal);
+    container.appendChild(monthHeader);
+
+    // Category breakdown chips
+    const cats = document.createElement('div');
+    cats.className = 'month-categories';
+    for (const [cat, amt] of Object.entries(row.byCategory).sort((a, b) => b[1] - a[1])) {
+      const item = document.createElement('span');
+      item.className = 'month-cat-item';
+      const badge = document.createElement('span');
+      badge.className = 'category-badge ' + cat;
+      badge.textContent = cat;
+      if (!CATEGORY_PALETTE[cat]) {
+        badge.style.background = getCategoryColor(cat);
+        badge.style.color = '#1f2937';
+      }
+      const catAmt = document.createElement('span');
+      catAmt.className = 'month-cat-amount';
+      catAmt.textContent = '$' + amt.toFixed(2);
+      item.appendChild(badge);
+      item.appendChild(catAmt);
+      cats.appendChild(item);
+    }
+    container.appendChild(cats);
+
+    // Transaction list for this month
+    const monthTxns = filtered
+      .filter(t => (t.date || '').slice(0, 7) === row.month)
+      .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+    const list = document.createElement('div');
+    list.className = 'month-txn-list';
+
+    for (const t of monthTxns) {
+      const item = document.createElement('div');
+      item.className = 'month-txn-row';
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'month-txn-name';
+      nameSpan.textContent = t.name;
+
+      const dateSpan = document.createElement('span');
+      dateSpan.className = 'transaction-date';
+      dateSpan.textContent = t.date
+        ? new Date(t.date + 'T00:00:00').toLocaleDateString('default', { day: 'numeric', month: 'short', year: 'numeric' })
+        : '';
+
+      const badge = document.createElement('span');
+      badge.className = 'category-badge ' + t.category;
+      badge.textContent = t.category;
+      if (!CATEGORY_PALETTE[t.category]) {
+        badge.style.background = getCategoryColor(t.category);
+        badge.style.color = '#1f2937';
+      }
+
+      const amtSpan = document.createElement('span');
+      amtSpan.className = 'transaction-amount';
+      amtSpan.textContent = '$' + t.amount.toFixed(2);
+
+      item.appendChild(nameSpan);
+      item.appendChild(dateSpan);
+      item.appendChild(badge);
+      item.appendChild(amtSpan);
+      list.appendChild(item);
+    }
+    container.appendChild(list);
+  }
+}
+
+/**
  * Re-render all UI components.
  */
 function renderAll() {
   renderBalance(transactions);
   renderTransactionList(transactions);
   renderChart(transactions);
+  renderMonthlySummary(transactions);
 }
 
 // ---------------------------------------------------------------------------
@@ -324,6 +514,7 @@ function handleFormSubmit(event) {
   const name = form.itemName.value;
   const amount = form.amount.value;
   const category = form.category.value;
+  const date = form.date ? form.date.value : '';
 
   const error = validateTransaction(name, amount, category);
 
@@ -333,8 +524,10 @@ function handleFormSubmit(event) {
   }
 
   if (errorEl) errorEl.textContent = '';
-  addTransaction(name, Number(amount), category);
+  addTransaction(name, Number(amount), category, date || undefined);
   form.reset();
+  // Restore date to today after reset
+  if (form.date) form.date.value = new Date().toISOString().slice(0, 10);
 }
 
 // ---------------------------------------------------------------------------
@@ -345,6 +538,29 @@ function applyTheme(dark) {
   document.body.classList.toggle('dark', dark);
   const btn = document.getElementById('theme-toggle');
   if (btn) btn.textContent = dark ? '☀️' : '🌙';
+}
+
+// ---------------------------------------------------------------------------
+// Toast notification
+// ---------------------------------------------------------------------------
+
+/** @type {number|null} */
+let toastTimer = null;
+
+/**
+ * Show a brief success toast message.
+ * @param {string} message
+ */
+function showToast(message) {
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+  toast.textContent = message;
+  toast.classList.add('toast-visible');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toast.classList.remove('toast-visible');
+    toastTimer = null;
+  }, 3000);
 }
 
 // ---------------------------------------------------------------------------
@@ -383,6 +599,13 @@ function refreshCategorySelect() {
 
 document.addEventListener('DOMContentLoaded', () => {
   transactions = loadTransactions();
+
+  // Sync category <select> with any custom categories saved in localStorage
+  refreshCategorySelect();
+
+  // Set date input default to today
+  const dateInput = document.getElementById('date');
+  if (dateInput) dateInput.value = new Date().toISOString().slice(0, 10);
 
   // Theme
   const savedDark = localStorage.getItem(THEME_KEY) === 'dark';
@@ -434,11 +657,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     addCategory(name);
     modal.hidden = true;
+    showToast('Good Job Data Successful');
   });
 
   nameInput?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') document.getElementById('modal-confirm').click();
     if (e.key === 'Escape') modal.hidden = true;
+  });
+
+  // Monthly summary date filter
+  const filterStart = document.getElementById('summary-filter-start');
+  const filterEnd = document.getElementById('summary-filter-end');
+  const filterClear = document.getElementById('summary-filter-clear');
+
+  function applyFilter() {
+    summaryFilterStart = filterStart ? filterStart.value : '';
+    summaryFilterEnd = filterEnd ? filterEnd.value : '';
+    renderMonthlySummary(transactions);
+  }
+
+  filterStart?.addEventListener('change', applyFilter);
+  filterEnd?.addEventListener('change', applyFilter);
+  filterClear?.addEventListener('click', () => {
+    if (filterStart) filterStart.value = '';
+    if (filterEnd) filterEnd.value = '';
+    summaryFilterStart = '';
+    summaryFilterEnd = '';
+    renderMonthlySummary(transactions);
   });
 
   renderAll();
@@ -458,10 +703,13 @@ if (typeof module !== 'undefined' && module.exports) {
     deleteTransaction,
     computeBalance,
     computeCategoryTotals,
+    computeMonthlySummary,
     getSortedTransactions,
     renderBalance,
     renderTransactionList,
     renderChart,
+    renderMonthlySummary,
     handleFormSubmit,
   };
+
 }

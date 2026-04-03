@@ -43,6 +43,10 @@
           <option value="Fun">Fun</option>
         </select>
       </div>
+      <div class="form-group">
+        <label for="date">Date</label>
+        <input type="date" id="date" name="date" />
+      </div>
       <button type="submit">Add Transaction</button>
       <p class="error" id="form-error"></p>
     </form>
@@ -55,7 +59,7 @@
           <label for="sort-select">Sort by:</label>
           <select id="sort-select">
             <option value="amount-desc">Amount (high–low)</option>
-            <option value="amount-asc">Amount (low–high)</option>
+            <option value="amount-asc">Amount (low–high)</option>s
             <option value="category">Category</option>
           </select>
         </div>
@@ -70,6 +74,22 @@
       <h2>Spending by Category</h2>
       <p id="chart-empty" class="empty-state">Add transactions to see the chart.</p>
       <canvas id="spending-chart" style="display:none;"></canvas>
+    </div>
+
+    <!-- Monthly Summary -->
+    <div class="monthly-section">
+      <div class="monthly-header">
+        <h2>Summary</h2>
+        <div class="summary-filter">
+          <input type="date" id="summary-filter-start" aria-label="Filter start date" />
+          <span class="summary-filter-sep">–</span>
+          <input type="date" id="summary-filter-end" aria-label="Filter end date" />
+          <button type="button" id="summary-filter-clear" class="btn-secondary">Clear</button>
+        </div>
+      </div>
+      <div id="monthly-summary">
+        <p class="empty-state">No data yet.</p>
+      </div>
     </div>
   </div>
 
@@ -88,6 +108,8 @@
       </div>
     </div>
   </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="js/app.js"></script>
 </body>
